@@ -252,6 +252,26 @@ export const JUIZ_MATRIX = [
   '..kkkk..kkkk..'
 ];
 
+// FISCAL DA CPI / RECEITA (14x16)
+export const FISCAL_MATRIX = [
+  '....kkkkkk....',
+  '...kmmmmmmk...', // brown hair
+  '..kmmmmmmmmk..',
+  '..kssssssssk..',
+  '..kskssksksk..', // eyes
+  '..kssssssssk..',
+  '...kssssssk...',
+  '...kbbkkbbk...', // blue suit + tie
+  '..kbbkkkkbbk..',
+  '.kssbbkkbbssm.', // clipboard in hand
+  '.kssbbkkbbsskk',
+  '..kkbbkkbbkk..',
+  '...kbb..bbk...',
+  '...kbb..bbk...',
+  '...kmm..mmk...', // shoes
+  '..kkkk..kkkk..'
+];
+
 // SWAN PEDALINHO (24x16)
 export const PEDALINHO_MATRIX = [
   '........kwwk............',
@@ -309,6 +329,10 @@ export function buildSprites() {
     dops: [
       rasterizeMatrix(DOPS_MATRIX, PALETTE, false),
       rasterizeMatrix(DOPS_MATRIX, PALETTE, true)
+    ],
+    fiscal: [
+      rasterizeMatrix(FISCAL_MATRIX, PALETTE, false),
+      rasterizeMatrix(FISCAL_MATRIX, PALETTE, true)
     ],
     juiz: [
       rasterizeMatrix(JUIZ_MATRIX, PALETTE, false),

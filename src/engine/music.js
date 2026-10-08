@@ -276,6 +276,9 @@ export class MusicPlayer {
 
   tick(ctx, trackName, muted, paused) {
     if (!ctx) return;
+    if (ctx.state === 'suspended') {
+      try { ctx.resume().catch(() => {}); } catch (e) {}
+    }
     if (this.currentTrack !== trackName) {
       this.switchTrack(ctx, trackName);
     }

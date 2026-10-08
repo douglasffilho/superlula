@@ -8,19 +8,31 @@ class AudioManager {
   }
 
   init() {
-    if (this.ctx) {
-      if (this.ctx.state === 'suspended') {
-        this.ctx.resume().catch(() => {});
-      }
-      return;
-    }
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (AudioCtx) {
+      if (!this.ctx && AudioCtx) {
         this.ctx = new AudioCtx();
+      }
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume().catch(() => {});
       }
     } catch (e) {
       console.warn('AudioContext failed to initialize:', e);
+    }
+  }
+
+  unlock() {
+    this.init();
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume().then(() => {
+        try {
+          const buffer = this.ctx.createBuffer(1, 1, 22050);
+          const source = this.ctx.createBufferSource();
+          source.buffer = buffer;
+          source.connect(this.ctx.destination);
+          source.start(0);
+        } catch (e) {}
+      }).catch(() => {});
     }
   }
 

@@ -18,8 +18,9 @@ export function GameStage({ onExit }) {
   const [dialog, setDialog] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [toastMsg, setToastMsg] = useState(null);
+  const [isPortrait, setIsPortrait] = useState(false);
 
-  // Active state for screen buttons to show real-time pressed feedback
+  // Active inputs state for visual feedback on buttons
   const [activeInputs, setActiveInputs] = useState({
     left: false,
     right: false,
@@ -52,7 +53,6 @@ export function GameStage({ onExit }) {
     setTimeout(() => setToastMsg(null), 1800);
   };
 
-  // Synchronize both keyboard and mouse/touch inputs into engine
   const syncInput = useCallback((action) => {
     const isDown = Boolean(keyInputs.current[action] || pointerInputs.current[action]);
     engineRef.current?.setInput(action, isDown);
@@ -60,6 +60,23 @@ export function GameStage({ onExit }) {
   }, []);
 
   useEffect(() => {
+    // Check screen orientation (Landscape vs Portrait)
+    const checkOrientation = () => {
+      const isPort = window.innerHeight > window.innerWidth && window.innerWidth <= 900;
+      setIsPortrait(isPort);
+      document.documentElement.classList.toggle('touch-on', true);
+      document.documentElement.classList.toggle('full', window.innerWidth <= 900 || window.innerHeight <= 520);
+
+      if (isPort && engineRef.current?.state === 'play') {
+        engineRef.current.state = 'pause';
+        setGameState('pause');
+      }
+    };
+
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -80,7 +97,16 @@ export function GameStage({ onExit }) {
 
     engine.start();
 
-    // Keyboard mappings (WASD, Arrows, Space, Z, X, Shift, Enter)
+    // Unlock Web Audio immediately on ANY user interaction on mobile or desktop
+    const handleUserGesture = () => {
+      audio.unlock();
+    };
+
+    window.addEventListener('pointerdown', handleUserGesture, { passive: true });
+    window.addEventListener('touchstart', handleUserGesture, { passive: true });
+    window.addEventListener('click', handleUserGesture, { passive: true });
+
+    // Keyboard controls
     const keyMap = {
       ArrowLeft: 'left',
       KeyA: 'left',
@@ -100,7 +126,7 @@ export function GameStage({ onExit }) {
     };
 
     const handleKeyDown = (e) => {
-      audio.init();
+      audio.unlock();
 
       if (e.code === 'KeyM') {
         const muted = audio.toggleMute();
@@ -149,14 +175,11 @@ export function GameStage({ onExit }) {
       }
     };
 
-    // Global release to guarantee buttons never get stuck when mouse released outside
     const handleGlobalPointerUp = () => {
-      let changed = false;
       for (const act in pointerInputs.current) {
         if (pointerInputs.current[act]) {
           pointerInputs.current[act] = false;
           syncInput(act);
-          changed = true;
         }
       }
     };
@@ -167,6 +190,11 @@ export function GameStage({ onExit }) {
     window.addEventListener('pointercancel', handleGlobalPointerUp);
 
     return () => {
+      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('orientationchange', checkOrientation);
+      window.removeEventListener('pointerdown', handleUserGesture);
+      window.removeEventListener('touchstart', handleUserGesture);
+      window.removeEventListener('click', handleUserGesture);
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('pointerup', handleGlobalPointerUp);
@@ -175,9 +203,9 @@ export function GameStage({ onExit }) {
     };
   }, [syncInput]);
 
-  // Pointer event handlers for on-screen buttons (mouse click or touch)
+  // Pointer event handlers for floating retro buttons
   const handlePointerDown = (action, e) => {
-    audio.init();
+    audio.unlock();
     if (e) {
       e.preventDefault();
       try { e.target.setPointerCapture(e.pointerId); } catch (err) {}
@@ -215,9 +243,8 @@ export function GameStage({ onExit }) {
     syncInput(action);
   };
 
-  // Direct click on retro canvas
   const handleCanvasClick = (e) => {
-    audio.init();
+    audio.unlock();
     const canvas = canvasRef.current;
     if (!canvas || !engineRef.current) return;
     const rect = canvas.getBoundingClientRect();
@@ -228,13 +255,17 @@ export function GameStage({ onExit }) {
     engineRef.current.handleCanvasClick(clickX, clickY);
   };
 
-  const handleToggleMute = () => {
+  const handleToggleMute = (e) => {
+    e?.stopPropagation();
+    audio.unlock();
     const muted = audio.toggleMute();
     setIsMuted(muted);
     showToast(muted ? 'Som desligado' : 'Som ligado');
   };
 
-  const handleTogglePause = () => {
+  const handleTogglePause = (e) => {
+    e?.stopPropagation();
+    audio.unlock();
     if (!engineRef.current) return;
     const engine = engineRef.current;
     if (engine.state === 'play') {
@@ -261,7 +292,7 @@ export function GameStage({ onExit }) {
           onPointerDown={handleCanvasClick}
         />
 
-        {/* In-Game HUD */}
+        {/* In-Game HUD Bar */}
         {showHud && (
           <div id="hud" className="px">
             <div id="hLives">♥ x {hud.lives}</div>
@@ -271,31 +302,89 @@ export function GameStage({ onExit }) {
           </div>
         )}
 
-        {/* Quick Actions (Sound, Pause, Switch Cartridge) */}
-        <div className="top-bar">
+        {/* Top Floating Action Buttons (Cartuchos, Som, Pausa) */}
+        {onExit && (
           <button
-            className="ctrl-btn"
-            onClick={handleToggleMute}
-            title="Ligar/Desligar Som (M)"
+            type="button"
+            className="tcart"
+            onClick={onExit}
+            title="Trocar Cartucho"
           >
-            {isMuted ? '🔇' : '🔊'}
+            ◂ TROCAR CARTUCHO
           </button>
-          <button
-            className="ctrl-btn"
-            onClick={handleTogglePause}
-            title="Pausar Jogo (Esc)"
-          >
-            ⏸
-          </button>
-          {onExit && (
+        )}
+
+        <button
+          type="button"
+          className="tmute"
+          onClick={handleToggleMute}
+          title="Ligar/Desligar Som (M)"
+        >
+          {isMuted ? '🔇' : '🔊'}
+        </button>
+
+        <button
+          type="button"
+          className="tpause"
+          onClick={handleTogglePause}
+          title="Pausar Jogo (Esc)"
+        >
+          II
+        </button>
+
+        {/* Floating Translucent On-Screen Controls Overlay (Matching Print 3) */}
+        <div id="touch" className="touch">
+          {/* Bottom Left: Direction Buttons ◀ ▶ */}
+          <div className="dpad">
             <button
-              className="ctrl-btn exit-btn"
-              onClick={onExit}
-              title="Trocar Cartucho"
+              type="button"
+              className={`tbtn d-left ${activeInputs.left ? 'on' : ''}`}
+              aria-label="Esquerda"
+              onPointerDown={(e) => handlePointerDown('left', e)}
+              onPointerUp={(e) => handlePointerUp('left', e)}
+              onPointerCancel={(e) => handlePointerUp('left', e)}
+              onContextMenu={(e) => e.preventDefault()}
             >
-              ◂ Cartuchos
+              ◀
             </button>
-          )}
+            <button
+              type="button"
+              className={`tbtn d-right ${activeInputs.right ? 'on' : ''}`}
+              aria-label="Direita"
+              onPointerDown={(e) => handlePointerDown('right', e)}
+              onPointerUp={(e) => handlePointerUp('right', e)}
+              onPointerCancel={(e) => handlePointerUp('right', e)}
+              onContextMenu={(e) => e.preventDefault()}
+            >
+              ▶
+            </button>
+          </div>
+
+          {/* Bottom Right: Action Buttons B and A (Staggered Diagonal) */}
+          <div className="btns">
+            <button
+              type="button"
+              className={`tbtn b ${activeInputs.action ? 'on' : ''}`}
+              aria-label="Ação / Correr"
+              onPointerDown={(e) => handlePointerDown('action', e)}
+              onPointerUp={(e) => handlePointerUp('action', e)}
+              onPointerCancel={(e) => handlePointerUp('action', e)}
+              onContextMenu={(e) => e.preventDefault()}
+            >
+              B
+            </button>
+            <button
+              type="button"
+              className={`tbtn a ${activeInputs.jump ? 'on' : ''}`}
+              aria-label="Pular / Confirmar"
+              onPointerDown={(e) => handlePointerDown('jump', e)}
+              onPointerUp={(e) => handlePointerUp('jump', e)}
+              onPointerCancel={(e) => handlePointerUp('jump', e)}
+              onContextMenu={(e) => e.preventDefault()}
+            >
+              A
+            </button>
+          </div>
         </div>
 
         {/* Pause Overlay */}
@@ -303,10 +392,11 @@ export function GameStage({ onExit }) {
           <div id="pause" className="ov center px">
             <div className="go-head">PAUSA</div>
             <div className="go-hint">
-              Clique em Continuar ou use o teclado (Z para continuar / X para mapa)
+              Z continua · X volta ao mapa
             </div>
             <div className="pause-actions">
               <button
+                type="button"
                 className="modal-btn"
                 onClick={() => {
                   engineRef.current.state = 'play';
@@ -316,13 +406,14 @@ export function GameStage({ onExit }) {
                 Continuar
               </button>
               <button
+                type="button"
                 className="modal-btn secondary"
                 onClick={() => {
                   engineRef.current.state = 'map';
                   setGameState('map');
                 }}
               >
-                Voltar ao Mapa
+                Mapa
               </button>
             </div>
           </div>
@@ -344,107 +435,31 @@ export function GameStage({ onExit }) {
         )}
       </div>
 
-      {/* CONTROLE COMPLETO NA TELA (Botões virtuais para Mouse e Touch) */}
-      <div id="screen-controls" className="screen-controls-panel">
-        {/* D-Pad Direcional */}
-        <div className="dpad-box">
-          <div className="dpad">
-            <button
-              type="button"
-              className={`d-btn d-up ${activeInputs.up ? 'active' : ''}`}
-              title="Cima (W / Seta Cima)"
-              onPointerDown={(e) => handlePointerDown('up', e)}
-              onPointerUp={(e) => handlePointerUp('up', e)}
-              onPointerCancel={(e) => handlePointerUp('up', e)}
-              onContextMenu={(e) => e.preventDefault()}
-            >
-              <span className="btn-glyph">▲</span>
-              <span className="btn-sub">W</span>
-            </button>
-
-            <button
-              type="button"
-              className={`d-btn d-left ${activeInputs.left ? 'active' : ''}`}
-              title="Esquerda (A / Seta Esquerda)"
-              onPointerDown={(e) => handlePointerDown('left', e)}
-              onPointerUp={(e) => handlePointerUp('left', e)}
-              onPointerCancel={(e) => handlePointerUp('left', e)}
-              onContextMenu={(e) => e.preventDefault()}
-            >
-              <span className="btn-glyph">◀</span>
-              <span className="btn-sub">A</span>
-            </button>
-
-            <button
-              type="button"
-              className={`d-btn d-right ${activeInputs.right ? 'active' : ''}`}
-              title="Direita (D / Seta Direita)"
-              onPointerDown={(e) => handlePointerDown('right', e)}
-              onPointerUp={(e) => handlePointerUp('right', e)}
-              onPointerCancel={(e) => handlePointerUp('right', e)}
-              onContextMenu={(e) => e.preventDefault()}
-            >
-              <span className="btn-glyph">▶</span>
-              <span className="btn-sub">D</span>
-            </button>
-
-            <button
-              type="button"
-              className={`d-btn d-down ${activeInputs.down ? 'active' : ''}`}
-              title="Baixo (S / Seta Baixo)"
-              onPointerDown={(e) => handlePointerDown('down', e)}
-              onPointerUp={(e) => handlePointerUp('down', e)}
-              onPointerCancel={(e) => handlePointerUp('down', e)}
-              onContextMenu={(e) => e.preventDefault()}
-            >
-              <span className="btn-glyph">▼</span>
-              <span className="btn-sub">S</span>
-            </button>
+      {/* Rotate Screen Prompt for Mobile Portrait (Matching Print 1) */}
+      <div id="rotate" hidden={!isPortrait} role="dialog" aria-label="Gire o celular">
+        <div className="rlogo" aria-label="Super Lula World">
+          <div className="s">SUPER</div>
+          <div className="f">
+            <span className="l1">L</span>
+            <span className="l2">U</span>
+            <span className="l3">L</span>
+            <span className="l4">A</span>
           </div>
+          <div className="w">WORLD</div>
         </div>
-
-        {/* Botões de Ação Arcade */}
-        <div className="action-box">
-          {/* Botão X: Ação / Correr */}
-          <button
-            type="button"
-            className={`action-btn btn-x ${activeInputs.action ? 'active' : ''}`}
-            title="Ação / Correr (X ou Shift)"
-            onPointerDown={(e) => handlePointerDown('action', e)}
-            onPointerUp={(e) => handlePointerUp('action', e)}
-            onPointerCancel={(e) => handlePointerUp('action', e)}
-            onContextMenu={(e) => e.preventDefault()}
-          >
-            <span className="btn-glyph">X</span>
-            <span className="btn-label">AÇÃO</span>
-            <span className="btn-sub">[Shift/X]</span>
-          </button>
-
-          {/* Botão Z: Pular / Confirmar */}
-          <button
-            type="button"
-            className={`action-btn btn-z ${activeInputs.jump ? 'active' : ''}`}
-            title="Pular / Confirmar (Z ou Espaço)"
-            onPointerDown={(e) => handlePointerDown('jump', e)}
-            onPointerUp={(e) => handlePointerUp('jump', e)}
-            onPointerCancel={(e) => handlePointerUp('jump', e)}
-            onContextMenu={(e) => e.preventDefault()}
-          >
-            <span className="btn-glyph">Z</span>
-            <span className="btn-label">PULAR</span>
-            <span className="btn-sub">[Espaço/Z]</span>
-          </button>
-        </div>
+        <div className="phone" aria-hidden="true" />
+        <h2>GIRE O CELULAR PARA COMEÇAR</h2>
+        <p>O jogo é na horizontal, com os controles na tela.</p>
+        <small>Esse jogo é uma paródia baseada em fatos reais. Fontes checadas e exibidas após cada fase.</small>
       </div>
 
-      {/* Legenda Informativa para Computador e Teclado */}
+      {/* Desktop Keyboard Instructions Legend */}
       <div className="legend">
-        <div className="legend-row">
-          <span><b>Teclado</b>: <b>A / D</b> ou <b>◀ ▶</b> mover &nbsp;|&nbsp; <b>Z / Espaço</b> pular &nbsp;|&nbsp; <b>X / Shift</b> correr &nbsp;|&nbsp; <b>Esc</b> pausa</span>
-        </div>
-        <div className="legend-row sub">
-          <span>💡 Você também pode <b>clicar e segurar</b> nos botões da tela com o mouse para jogar!</span>
-        </div>
+        <b>◀ ▶</b> andam &nbsp;·&nbsp;
+        <b>Z</b> pula / confirma &nbsp;·&nbsp;
+        <b>X</b> corre / ação &nbsp;·&nbsp;
+        <b>Esc</b> pausa &nbsp;·&nbsp;
+        <b>M</b> som
       </div>
     </div>
   );
