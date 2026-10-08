@@ -281,6 +281,7 @@ export function GameStage({ onExit }) {
 
   return (
     <div className="stage-wrapper">
+      {/* ── STAGE (the 336×192 canvas box) ─────────────────────────────── */}
       <div className="stage" id="stage">
         {/* Retro Canvas (336x192) */}
         <canvas
@@ -301,91 +302,6 @@ export function GameStage({ onExit }) {
             <div id="hCoins">{String(hud.score).padStart(6, '0')}</div>
           </div>
         )}
-
-        {/* Top Floating Action Buttons (Cartuchos, Som, Pausa) */}
-        {onExit && (
-          <button
-            type="button"
-            className="tcart"
-            onClick={onExit}
-            title="Trocar Cartucho"
-          >
-            ◂ TROCAR CARTUCHO
-          </button>
-        )}
-
-        <button
-          type="button"
-          className="tmute"
-          onClick={handleToggleMute}
-          title="Ligar/Desligar Som (M)"
-        >
-          {isMuted ? '🔇' : '🔊'}
-        </button>
-
-        <button
-          type="button"
-          className="tpause"
-          onClick={handleTogglePause}
-          title="Pausar Jogo (Esc)"
-        >
-          II
-        </button>
-
-        {/* Floating Translucent On-Screen Controls Overlay (Matching Print 3) */}
-        <div id="touch" className="touch">
-          {/* Bottom Left: Direction Buttons ◀ ▶ */}
-          <div className="dpad">
-            <button
-              type="button"
-              className={`tbtn d-left ${activeInputs.left ? 'on' : ''}`}
-              aria-label="Esquerda"
-              onPointerDown={(e) => handlePointerDown('left', e)}
-              onPointerUp={(e) => handlePointerUp('left', e)}
-              onPointerCancel={(e) => handlePointerUp('left', e)}
-              onContextMenu={(e) => e.preventDefault()}
-            >
-              ◀
-            </button>
-            <button
-              type="button"
-              className={`tbtn d-right ${activeInputs.right ? 'on' : ''}`}
-              aria-label="Direita"
-              onPointerDown={(e) => handlePointerDown('right', e)}
-              onPointerUp={(e) => handlePointerUp('right', e)}
-              onPointerCancel={(e) => handlePointerUp('right', e)}
-              onContextMenu={(e) => e.preventDefault()}
-            >
-              ▶
-            </button>
-          </div>
-
-          {/* Bottom Right: Action Buttons B and A (Staggered Diagonal) */}
-          <div className="btns">
-            <button
-              type="button"
-              className={`tbtn b ${activeInputs.action ? 'on' : ''}`}
-              aria-label="Ação / Correr"
-              onPointerDown={(e) => handlePointerDown('action', e)}
-              onPointerUp={(e) => handlePointerUp('action', e)}
-              onPointerCancel={(e) => handlePointerUp('action', e)}
-              onContextMenu={(e) => e.preventDefault()}
-            >
-              B
-            </button>
-            <button
-              type="button"
-              className={`tbtn a ${activeInputs.jump ? 'on' : ''}`}
-              aria-label="Pular / Confirmar"
-              onPointerDown={(e) => handlePointerDown('jump', e)}
-              onPointerUp={(e) => handlePointerUp('jump', e)}
-              onPointerCancel={(e) => handlePointerUp('jump', e)}
-              onContextMenu={(e) => e.preventDefault()}
-            >
-              A
-            </button>
-          </div>
-        </div>
 
         {/* Pause Overlay */}
         {gameState === 'pause' && (
@@ -435,7 +351,96 @@ export function GameStage({ onExit }) {
         )}
       </div>
 
-      {/* Rotate Screen Prompt for Mobile Portrait (Matching Print 1) */}
+      {/* ── FIXED OVERLAY BUTTONS (position:fixed — outside .stage overflow:hidden) */}
+
+      {/* Cartridge Select — top left */}
+      {onExit && (
+        <button
+          type="button"
+          className="tcart"
+          onClick={onExit}
+          title="Trocar Cartucho"
+        >
+          ◂ TROCAR CARTUCHO
+        </button>
+      )}
+
+      {/* Mute — top right (left of pause) */}
+      <button
+        type="button"
+        className="tmute"
+        onClick={handleToggleMute}
+        title="Ligar/Desligar Som (M)"
+      >
+        {isMuted ? '🔇' : '🔊'}
+      </button>
+
+      {/* Pause — top right */}
+      <button
+        type="button"
+        className="tpause"
+        onClick={handleTogglePause}
+        title="Pausar Jogo (Esc)"
+      >
+        II
+      </button>
+
+      {/* ── TOUCH CONTROLS (position:fixed — overlay on viewport bottom) ── */}
+      <div id="touch" className="touch">
+        {/* Bottom Left: Direction Buttons ◀ ▶ */}
+        <div className="dpad">
+          <button
+            type="button"
+            className={`tbtn d-left ${activeInputs.left ? 'on' : ''}`}
+            aria-label="Esquerda"
+            onPointerDown={(e) => handlePointerDown('left', e)}
+            onPointerUp={(e) => handlePointerUp('left', e)}
+            onPointerCancel={(e) => handlePointerUp('left', e)}
+            onContextMenu={(e) => e.preventDefault()}
+          >
+            ◀
+          </button>
+          <button
+            type="button"
+            className={`tbtn d-right ${activeInputs.right ? 'on' : ''}`}
+            aria-label="Direita"
+            onPointerDown={(e) => handlePointerDown('right', e)}
+            onPointerUp={(e) => handlePointerUp('right', e)}
+            onPointerCancel={(e) => handlePointerUp('right', e)}
+            onContextMenu={(e) => e.preventDefault()}
+          >
+            ▶
+          </button>
+        </div>
+
+        {/* Bottom Right: Action Buttons B (lower) and A (higher/larger) */}
+        <div className="btns">
+          <button
+            type="button"
+            className={`tbtn b ${activeInputs.action ? 'on' : ''}`}
+            aria-label="Ação / Correr"
+            onPointerDown={(e) => handlePointerDown('action', e)}
+            onPointerUp={(e) => handlePointerUp('action', e)}
+            onPointerCancel={(e) => handlePointerUp('action', e)}
+            onContextMenu={(e) => e.preventDefault()}
+          >
+            B
+          </button>
+          <button
+            type="button"
+            className={`tbtn a ${activeInputs.jump ? 'on' : ''}`}
+            aria-label="Pular / Confirmar"
+            onPointerDown={(e) => handlePointerDown('jump', e)}
+            onPointerUp={(e) => handlePointerUp('jump', e)}
+            onPointerCancel={(e) => handlePointerUp('jump', e)}
+            onContextMenu={(e) => e.preventDefault()}
+          >
+            A
+          </button>
+        </div>
+      </div>
+
+      {/* ── ROTATE SCREEN OVERLAY (portrait mobile only) ───────────────── */}
       <div id="rotate" hidden={!isPortrait} role="dialog" aria-label="Gire o celular">
         <div className="rlogo" aria-label="Super Lula World">
           <div className="s">SUPER</div>

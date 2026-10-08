@@ -296,168 +296,292 @@ html, body {
   border-radius: 3px;
 }
 
-/* ON-SCREEN CONTROLS PANEL (Mouse & Touch for Computer and Mobile) */
-.screen-controls-panel {
-  display: flex;
+/* ─── TOUCH CONTROLS VARIABLES ─────────────────────────────────────── */
+:root {
+  --t-dir: clamp(54px, 15vmin, 72px);
+  --t-a: clamp(62px, 18vmin, 84px);
+  --t-b: clamp(56px, 15.5vmin, 74px);
+  --t-gap: clamp(14px, 4vmin, 22px);
+  --t-pause: clamp(44px, 11vmin, 52px);
+  --t-edge-x: max(16px, env(safe-area-inset-left, 0px));
+  --t-edge-r: max(16px, env(safe-area-inset-right, 0px));
+  --t-edge-b: max(20px, env(safe-area-inset-bottom, 0px));
+}
+
+/* ─── TOUCH OVERLAY (fixed over entire viewport) ────────────────────── */
+.touch {
+  z-index: 20;
+  padding: 0 var(--t-edge-r) var(--t-edge-b) var(--t-edge-x);
+  pointer-events: none;
   justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  max-width: 680px;
-  margin-top: 14px;
-  padding: 10px 16px;
-  background: rgba(13, 16, 48, 0.75);
-  border: 2px solid rgba(255, 210, 31, 0.35);
-  border-radius: 8px;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
-  gap: 16px;
+  align-items: flex-end;
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
 }
 
-/* D-PAD STYLING */
-.dpad-box {
+html.touch-on .touch {
   display: flex;
-  justify-content: center;
-  align-items: center;
 }
 
+/* D-PAD (left side) */
 .dpad {
+  gap: var(--t-gap);
+  pointer-events: auto;
+  touch-action: none;
+  margin: -10px;
+  padding: 10px;
+  display: flex;
+  position: relative;
+}
+
+/* ACTION BUTTONS (right side) */
+.btns {
+  gap: var(--t-gap);
+  pointer-events: auto;
+  align-items: flex-end;
+  display: flex;
+}
+
+/* SHARED BUTTON BASE */
+.tbtn,
+.tpause,
+.tmute {
+  box-sizing: border-box;
+  color: #ffffffc7;
+  font-family: var(--pixel);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  touch-action: none;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.14);
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  place-items: center;
+  transition: background 60ms, transform 60ms, border-color 60ms;
   display: grid;
-  grid-template-columns: repeat(3, var(--t-b));
-  grid-template-rows: repeat(3, var(--t-b));
-  gap: 3px;
-}
-
-.d-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid rgba(255, 255, 255, 0.45);
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  border-radius: 6px;
-  font-family: var(--pixel);
-  padding: 2px;
-  transition: all 0.1s ease;
+  position: relative;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.22), inset 0 0 0 1px rgba(0, 0, 0, 0.22);
+  -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-user-select: none;
-  touch-action: none;
 }
 
-.d-btn:hover {
-  background: rgba(255, 210, 31, 0.22);
-  border-color: var(--gold);
-  transform: scale(1.04);
-}
-
-.d-btn.active, .d-btn:active {
-  background: var(--gold) !important;
-  color: #000 !important;
-  border-color: #ffffff !important;
-  transform: scale(0.94) !important;
-  box-shadow: 0 0 12px var(--gold), inset 0 2px 4px rgba(0, 0, 0, 0.6);
-}
-
-.d-btn .btn-glyph {
-  font-size: clamp(12px, 2.5vw, 16px);
-  line-height: 1;
-}
-
-.d-btn .btn-sub {
-  font-size: 7px;
-  opacity: 0.8;
-  margin-top: 2px;
-  font-family: monospace;
-}
-
-.d-up { grid-column: 2; grid-row: 1; }
-.d-left { grid-column: 1; grid-row: 2; }
-.d-right { grid-column: 3; grid-row: 2; }
-.d-down { grid-column: 2; grid-row: 3; }
-
-/* ACTION BUTTONS (Arcade Style for Jump & Action) */
-.action-box {
-  display: flex;
-  gap: clamp(10px, 3vw, 24px);
-  align-items: center;
-}
-
-.action-btn {
-  width: clamp(60px, 14vw, 84px);
-  height: clamp(60px, 14vw, 84px);
+/* D-direction + B buttons */
+.tbtn {
+  width: var(--t-b);
+  height: var(--t-b);
+  font-size: calc(var(--t-b) * 0.38);
   border-radius: 50%;
+  padding: 0;
+  line-height: 1;
+}
+
+/* A (Jump) button — larger + higher than B */
+.tbtn.a {
+  width: var(--t-a);
+  height: var(--t-a);
+  font-size: calc(var(--t-a) * 0.38);
+  margin-bottom: calc(var(--t-b) * 0.55);
+}
+
+/* Pressed state */
+.tbtn.on,
+.tpause.on,
+.tmute.on {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.30);
+  border-color: #fff;
+  transform: scale(0.92);
+}
+
+/* ─── FLOATING FIXED TOP BUTTONS (Pause, Mute, Cart) ───────────────── */
+.tpause {
+  z-index: 21;
+  position: fixed;
+  top: max(14px, calc(env(safe-area-inset-top, 0px) + 8px));
+  right: var(--t-edge-r);
+  width: var(--t-pause);
+  height: var(--t-pause);
+  font-size: calc(var(--t-pause) * 0.34);
+  border-radius: 50%;
+}
+
+.tmute {
+  z-index: 21;
+  position: fixed;
+  top: max(14px, calc(env(safe-area-inset-top, 0px) + 8px));
+  right: calc(var(--t-edge-r) + var(--t-pause) + 10px);
+  width: var(--t-pause);
+  height: var(--t-pause);
+  font-size: calc(var(--t-pause) * 0.48);
+  border-radius: 50%;
+}
+
+.tcart {
+  z-index: 21;
+  position: fixed;
+  top: max(14px, calc(env(safe-area-inset-top, 0px) + 8px));
+  left: var(--t-edge-x);
+  height: var(--t-pause);
+  padding: 0 12px;
+  font-size: clamp(6px, 1.4vw, 10px);
+  border-radius: calc(var(--t-pause) / 2);
+  white-space: nowrap;
+  box-sizing: border-box;
+  color: #ffffffc7;
+  font-family: var(--pixel);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.14);
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.22), inset 0 0 0 1px rgba(0, 0, 0, 0.22);
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.tcart:active,
+.tcart:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: #fff;
+  color: #fff;
+}
+
+/* ─── FULLSCREEN (html.full) — landscape mobile fills viewport ──────── */
+html.full body {
+  padding: 0;
+  gap: 0;
+}
+
+html.full .app-container {
+  padding: 0;
+}
+
+html.full .stage-wrapper {
+  width: 100vw;
+  max-width: 100vw;
+}
+
+html.full .stage {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100vw;
+  height: 100vh;
+  aspect-ratio: auto;
+  max-width: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+html.full .legend {
+  display: none;
+}
+
+/* ─── ROTATE SCREEN OVERLAY ─────────────────────────────────────────── */
+#rotate {
+  z-index: 60;
+  background: var(--night);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-family: var(--pixel);
-  cursor: pointer;
-  border: 3px solid;
-  transition: all 0.1s ease;
-  user-select: none;
-  -webkit-user-select: none;
-  touch-action: none;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  gap: 20px;
+  position: fixed;
+  inset: 0;
 }
 
-.action-btn .btn-glyph {
-  font-size: clamp(16px, 3.2vw, 22px);
-  font-weight: bold;
-  line-height: 1;
+#rotate[hidden] {
+  display: none !important;
 }
 
-.action-btn .btn-label {
-  font-size: clamp(7px, 1.3vw, 9px);
-  margin-top: 3px;
-  letter-spacing: 0.05em;
+#rotate .rlogo {
+  text-align: center;
+  line-height: 1.1;
 }
 
-.action-btn .btn-sub {
-  font-size: 6px;
-  opacity: 0.75;
-  margin-top: 2px;
-  font-family: monospace;
+#rotate .rlogo .s {
+  font-size: clamp(10px, 3vw, 16px);
+  color: var(--ink);
+  letter-spacing: 0.15em;
 }
 
-/* Button X (Correr / Ação) */
-.btn-x {
-  background: rgba(211, 47, 47, 0.25);
-  border-color: #ef5350;
-  color: #ffcdd2;
+#rotate .rlogo .f {
+  font-size: clamp(32px, 12vw, 64px);
+  color: var(--gold);
+  text-shadow: 4px 4px #000;
+  display: flex;
+  justify-content: center;
 }
 
-.btn-x:hover {
-  background: rgba(211, 47, 47, 0.4);
-  transform: scale(1.05);
+#rotate .rlogo .l1 { color: #4ade80; }
+#rotate .rlogo .l2 { color: var(--gold); }
+#rotate .rlogo .l3 { color: #60a5fa; }
+#rotate .rlogo .l4 { color: var(--red); }
+
+#rotate .rlogo .w {
+  font-size: clamp(8px, 2.5vw, 14px);
+  color: var(--green);
+  letter-spacing: 0.2em;
 }
 
-.btn-x.active, .btn-x:active {
-  background: #d32f2f !important;
-  color: #ffffff !important;
-  border-color: #ffffff !important;
-  transform: scale(0.95) !important;
-  box-shadow: 0 0 16px #d32f2f, inset 0 2px 6px rgba(0, 0, 0, 0.7);
+#rotate .phone {
+  width: 56px;
+  height: 90px;
+  border: 3px solid var(--gold);
+  border-radius: 10px;
+  position: relative;
+  animation: rotate-phone 2s ease-in-out infinite;
 }
 
-/* Button Z (Pular / Confirmar) */
-.btn-z {
-  background: rgba(22, 163, 74, 0.25);
-  border-color: #4ade80;
-  color: #bbf7d0;
+#rotate .phone::before {
+  content: '';
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 4px;
+  background: var(--gold);
+  border-radius: 2px;
 }
 
-.btn-z:hover {
-  background: rgba(22, 163, 74, 0.4);
-  transform: scale(1.05);
+@keyframes rotate-phone {
+  0%, 40% { transform: rotate(0deg); }
+  60%, 100% { transform: rotate(90deg); }
 }
 
-.btn-z.active, .btn-z:active {
-  background: #16a34a !important;
-  color: #ffffff !important;
-  border-color: #ffffff !important;
-  transform: scale(0.95) !important;
-  box-shadow: 0 0 16px #16a34a, inset 0 2px 6px rgba(0, 0, 0, 0.7);
+#rotate h2 {
+  font-size: clamp(9px, 3vw, 14px);
+  color: var(--gold);
+  text-align: center;
+  margin: 0;
+  animation: pulse 1.5s infinite;
 }
+
+#rotate p {
+  font-family: var(--read);
+  font-size: clamp(14px, 4vw, 20px);
+  color: var(--ink);
+  text-align: center;
+  margin: 0;
+  max-width: 80vw;
+}
+
+#rotate small {
+  font-family: var(--read);
+  font-size: clamp(11px, 3vw, 15px);
+  color: #8ae69b;
+  text-align: center;
+  max-width: 80vw;
+  opacity: 0.8;
+}
+
+/* ─── DESKTOP KEYBOARD LEGEND ───────────────────────────────────────── */
 
 /* DESKTOP KEYBOARD LEGEND */
 .legend {
